@@ -1,0 +1,49 @@
+{
+  "name": "async",
+  "description": "Asynchronous coordination primitives for JavaScript and TypeScript",
+  "keywords": [
+    "async",
+    "promise",
+    "promises",
+    "future",
+    "deferred",
+    "promise-a",
+    "promise-a-plus",
+    "then",
+    "await",
+    "coordination",
+    "semaphore",
+    "cancellation"
+  ],
+  "author": {
+    "name": "Ron Buckton",
+    "email": "rbuckton@chronicles.org",
+    "url": "http://github.com/rbuckton"
+  },
+  "version": "0.0.1",
+  "main": "./lib/async.js",
+  "private": true,
+  "preferGlobal": true,
+  "dependencies": {    
+  },
+  "devDependencies": {
+    "jake": "*",
+    "typescript": ">=1.4",
+    "browserify": "~8.0.3"
+  },
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "bugs": {
+    "email": "rbuckton",
+    "url": "http://github.com/rbuckton/asyncjs/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/rbuckton/asyncjs.git"
+  },
+  "license": {
+    "license": "Apache-2.0",
+    "url": "http://github.com/rbuckton/asyncjs/raw/master/LICENSE"
+  }
+}
