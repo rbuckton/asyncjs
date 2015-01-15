@@ -65,16 +65,10 @@ export declare class Uri {
     scheme: string;
     /**
      * Tests whether the provided uri has the same origin as this uri
-     * @param uri {Uri} The uri to compare against
-     * @returns {Boolean} True if the uri's have the same origin; otherwise, false
+     * @param uri The uri to compare against
+     * @returns True if the uri's have the same origin; otherwise, false
      */
-    isSameOrigin(uri: Uri): boolean;
-    /**
-     * Tests whether the provided uri has the same origin as this uri
-     * @param uri {String} The uri to compare against
-     * @returns {Boolean} True if the uri's have the same origin; otherwise, false
-     */
-    isSameOrigin(uri: string): boolean;
+    isSameOrigin(uri: string | Uri): boolean;
     /**
      * Gets the string representation of the Uri
      * @param format {String} A format specifier.
@@ -89,36 +83,18 @@ export declare class Uri {
     static parse(uri: string): Uri;
     /**
      * Combines two uris
-     * @param baseUri {Uri} The base uri
-     * @param uri {Uri} The relative uri
-     * @returns {Uri} The combined uri
+     * @param baseUri The base uri
+     * @param uri The relative uri
+     * @returns The combined uri
      */
-    static combine(baseUri: Uri, uri: Uri): Uri;
-    /**
-     * Combines two uris
-     * @param baseUri {Uri} The base uri
-     * @param uri {String} The relative uri
-     * @returns {Uri} The combined uri
-     */
-    static combine(baseUri: Uri, uri: string): Uri;
-    /**
-     * Combines two uris
-     * @param baseUri {String} The base uri
-     * @param uri {Uri} The relative uri
-     * @returns {Uri} The combined uri
-     */
-    static combine(baseUri: string, uri: Uri): Uri;
-    /**
-     * Combines two uris
-     * @param baseUri {String} The base uri
-     * @param uri {String} The relative uri
-     * @returns {Uri} The combined uri
-     */
-    static combine(baseUri: string, uri: string): Uri;
+    static combine(baseUri: string | Uri, uri: string | Uri): Uri;
 }
 export declare module QueryString {
-    function stringify(obj: any): string;
-    function parse(text: string): any;
+    interface QueryStringMap {
+        [key: string]: string | number | boolean | (string | number | boolean)[];
+    }
+    function stringify(obj: QueryStringMap): string;
+    function parse(text: string): QueryStringMap;
 }
 /**
  * An HTTP request for an HttpClient

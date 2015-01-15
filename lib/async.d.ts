@@ -9,4 +9,3 @@ export import CancellationToken = cancellation.CancellationToken;
 export import CancellationRegistration = cancellation.CancellationRegistration;
 export import CancellationTokenSource = cancellation.CancellationTokenSource;
 export import sleep = utils.sleep;
-export import Http = require('./httpclient');

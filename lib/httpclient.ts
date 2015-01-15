@@ -157,25 +157,26 @@ export class Uri {
 
     /**
      * Tests whether the provided uri has the same origin as this uri
-     * @param uri {Uri} The uri to compare against
-     * @returns {Boolean} True if the uri's have the same origin; otherwise, false
+     * @param uri The uri to compare against
+     * @returns True if the uri's have the same origin; otherwise, false
      */
-    public isSameOrigin(uri: Uri): boolean;
-
-    /**
-     * Tests whether the provided uri has the same origin as this uri
-     * @param uri {String} The uri to compare against
-     * @returns {Boolean} True if the uri's have the same origin; otherwise, false
-     */
-    public isSameOrigin(uri: string): boolean;
-
-    public isSameOrigin(uriAny: any): boolean {
-        var uri: Uri = uriAny instanceof Uri ? uriAny : Uri.parse(String(uriAny));
-        if (this.absolute) {
-            return this.origin === uri.origin;
+    public isSameOrigin(uri: string | Uri): boolean {
+        var other: Uri;
+        if (typeof uri === "string") {
+          other = Uri.parse(<string>uri);
+        }
+        else if (uri instanceof Uri) {
+          other = uri;
+        }
+        else {
+          throw new TypeError("Argument not optional.");
         }
 
-        return !uri.absolute;
+        if (this.absolute) {
+            return this.origin === other.origin;
+        }
+
+        return !other.absolute;
     }
 
     /**
@@ -293,47 +294,24 @@ export class Uri {
 
     /**
      * Combines two uris
-     * @param baseUri {Uri} The base uri
-     * @param uri {Uri} The relative uri
-     * @returns {Uri} The combined uri
+     * @param baseUri The base uri
+     * @param uri The relative uri
+     * @returns The combined uri
      */
-    public static combine(baseUri: Uri, uri: Uri): Uri;
-
-    /**
-     * Combines two uris
-     * @param baseUri {Uri} The base uri
-     * @param uri {String} The relative uri
-     * @returns {Uri} The combined uri
-     */
-    public static combine(baseUri: Uri, uri: string): Uri;
-
-    /**
-     * Combines two uris
-     * @param baseUri {String} The base uri
-     * @param uri {Uri} The relative uri
-     * @returns {Uri} The combined uri
-     */
-    public static combine(baseUri: string, uri: Uri): Uri;
-
-    /**
-     * Combines two uris
-     * @param baseUri {String} The base uri
-     * @param uri {String} The relative uri
-     * @returns {Uri} The combined uri
-     */
-    public static combine(baseUri: string, uri: string): Uri;
-
-    public static combine(baseUri: any, uri: any): Uri {
+    public static combine(baseUri: string | Uri, uri: string | Uri): Uri {
         return new Uri(baseUri, uri);
     }
 }
 
 export module QueryString {
-
     var hasOwn = Object.prototype.hasOwnProperty;
     var QueryStringParser = /(?:\?|&|^)([^=&]*)(?:=([^&]*))?/g;
 
-    export function stringify(obj: any): string {
+    export interface QueryStringMap { 
+      [key: string]: string | number | boolean | (string | number | boolean)[];
+    }
+
+    export function stringify(obj: QueryStringMap): string {
         var qs: string[] = [];
         Object.getOwnPropertyNames(obj).forEach(name => {
             var value = obj[name];
@@ -376,8 +354,8 @@ export module QueryString {
         return "";
     }
 
-    export function parse(text: string): any {
-        var obj: any = {};
+    export function parse(text: string): QueryStringMap {
+        var obj: QueryStringMap = {};
         var part: RegExpExecArray;
         while (part = QueryStringParser.exec(text)) {
             var key = decodeURIComponent(part[1]);
@@ -390,7 +368,7 @@ export module QueryString {
                         ar.push(value);
                     }
                     else {
-                        obj[key] = [previous, value];
+                        obj[key] = [<string | number | boolean>previous, value];
                     }
                 }
                 else {
