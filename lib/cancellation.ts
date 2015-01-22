@@ -1,3 +1,7 @@
+var hasMsNonUserCodeExceptions =
+    typeof Debug !== "undefined" &&
+    typeof Debug.setNonUserCodeExceptions === "boolean";
+
 /**
  * A token used to recieve a cancellation signal.
  */
@@ -261,6 +265,7 @@ export class CancellationTokenSource {
     }
 
     private _cancelCore(reason: any): void {
+        if (hasMsNonUserCodeExceptions) Debug.setNonUserCodeExceptions = true;
         if (this._canceled) {
             return;
         }

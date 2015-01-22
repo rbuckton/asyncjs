@@ -8,6 +8,10 @@ var hasMsDebug =
     typeof Debug.msTraceAsyncCallbackStarting === "function" &&
     typeof Debug.msTraceAsyncCallbackCompleted === "function";
 
+var hasMsNonUserCodeExceptions =
+    typeof Debug !== "undefined" &&
+    typeof Debug.setNonUserCodeExceptions === "boolean";
+
 export interface IPromise<T> {
     then<TResult>(onfulfilled: (value: T) => TResult | IPromise<TResult>, onrejected: (reason: any) => TResult | IPromise<TResult>): IPromise<TResult>;
 }
@@ -21,6 +25,7 @@ export class Promise<T> {
      * @param init A callback used to initialize the promise. This callback is passed two arguments: a resolve callback used resolve the promise with a value or the result of another promise, and a reject callback used to reject the promise with a provided reason or error.
      */
     constructor(init: (resolve: (value?: IPromise<T> | T) => void, reject: (reason?: any) => void) => void) {
+        if (hasMsNonUserCodeExceptions) Debug.setNonUserCodeExceptions = true;
         if (typeof init !== "function") throw new TypeError("argument is not a Function object");
         var resolve = (rejecting: boolean, result: any) => { resolve = null; this._resolve(rejecting, result); };
         try {
@@ -147,6 +152,7 @@ export class Promise<T> {
     }
 
     private _resolve(rejecting: boolean, result: any): void {
+        if (hasMsNonUserCodeExceptions) Debug.setNonUserCodeExceptions = true;
         if (!rejecting) {
             try {
                 if (this === result) throw new TypeError("Cannot resolve a promise with itself");
@@ -197,6 +203,7 @@ export class Promise<T> {
     private _forward(prev: (rejecting: boolean, result: any) => void, resolve: (value: any) => void, reject: (value: any) => void, rejecting: boolean, result: any, onresolved: (value: any) => any, onrejected: (error: any) => any, id: number): void {
         prev && prev.call(this, rejecting, result);
         scheduleTask(() => {
+            if (hasMsNonUserCodeExceptions) Debug.setNonUserCodeExceptions = true;
             try {
                 var handler = rejecting ? onrejected : onresolved;
                 hasMsDebug && Debug.msTraceAsyncOperationCompleted(id, rejecting ? Debug.MS_ASYNC_OP_STATUS_ERROR : Debug.MS_ASYNC_OP_STATUS_SUCCESS);

@@ -6,6 +6,10 @@ import CancellationToken = cancellation.CancellationToken;
 import CancellationRegistration = cancellation.CancellationRegistration;
 import CancellationTokenSource = cancellation.CancellationTokenSource
 
+var hasMsNonUserCodeExceptions =
+    typeof Debug !== "undefined" &&
+    typeof Debug.setNonUserCodeExceptions === "boolean";
+
 /**
  * A Uri
  */
@@ -698,6 +702,7 @@ export class HttpClient {
 
             // create the onload callback
             var onload = (ev: Event) => {
+                if (hasMsNonUserCodeExceptions) Debug.setNonUserCodeExceptions = true;
                 cleanup();
 
                 // catch a cancellation and reject the promise
@@ -720,6 +725,7 @@ export class HttpClient {
 
             // create the onerror callback
             var onerror = (ev: ErrorEvent) => {
+                if (hasMsNonUserCodeExceptions) Debug.setNonUserCodeExceptions = true;
                 cleanup();
 
                 // catch a cancellation and reject the promise
@@ -737,6 +743,7 @@ export class HttpClient {
 
             // register a cleanup phase
             var registration = cts.token.register(() => {
+                if (hasMsNonUserCodeExceptions) Debug.setNonUserCodeExceptions = true;
                 cleanup();
 
                 // abort the xhr
@@ -838,6 +845,7 @@ export class HttpClient {
             
             // checks whether the request has been canceled
             var checkCanceled = () => {
+                if (hasMsNonUserCodeExceptions) Debug.setNonUserCodeExceptions = true;
                 try {
                     cts.token.throwIfCanceled();
                 }
