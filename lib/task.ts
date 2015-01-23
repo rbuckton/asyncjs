@@ -1,3 +1,5 @@
+declare var process: any;
+
 export type Handle = {};
 
 export function scheduleTask(task: () => void): Handle {
@@ -57,7 +59,7 @@ var recoveryQueue: TaskQueue;
 var queue: TaskQueue;
 
 function scheduleTick(): void {
-  if (handle === void 0) {
+  if (handle !== void 0) {
     return;
   }
   if (!scheduler) {
@@ -76,6 +78,7 @@ function cancelTick(): void {
 }
 
 function onTick(): void {
+  handle = undefined;
   processQueue(recoveryQueue);
   recoveryQueue = queue;
   queue = undefined;

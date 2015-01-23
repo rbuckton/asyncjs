@@ -93,7 +93,7 @@ export declare module QueryString {
     interface QueryStringMap {
         [key: string]: string | number | boolean | (string | number | boolean)[];
     }
-    function stringify(obj: QueryStringMap): string;
+    function stringify(obj: any): string;
     function parse(text: string): QueryStringMap;
 }
 /**

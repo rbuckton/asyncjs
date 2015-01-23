@@ -94,7 +94,8 @@ export class Uri {
         else {
             var baseUri: Uri = args[0] instanceof Uri ? args[0] : Uri.parse(args[0]);
             var uri: Uri = args[0] instanceof Uri ? args[1] : Uri.parse(args[1]);
-            if (uri.absolute) {         
+            this.hash = uri.hash;
+            if (uri.protocol) {
                 this.protocol = uri.protocol;
                 this.hostname = uri.hostname;
                 this.port = uri.port;
@@ -105,36 +106,44 @@ export class Uri {
             }
             else {
                 this.protocol = baseUri.protocol;
-                this.hostname = baseUri.hostname;
-                this.port = baseUri.port;
-                this.pathname = baseUri.pathname;
-                this.search = baseUri.search;
-                this.hash = baseUri.hash;
-                this.absolute = baseUri.absolute;
-                if (uri.pathname) {
-                    if (uri.pathname[0] !== '/') {
-                        if ((baseUri.absolute && !baseUri.pathname) || baseUri.pathname === "/") {
-                            this.pathname = '/' + uri.pathname;
-                        }
-                        else if (baseUri.pathname) {
-                            var parts = baseUri.pathname.split('/');
-                            parts[parts.length - 1] = uri.pathname;
-                            this.pathname = parts.join('/');
-                        }
-                    }
+                if (uri.hostname) {
+                    this.hostname = uri.hostname;
+                    this.port = uri.port;
+                    this.pathname = uri.pathname;
+                    this.search = uri.search;
+                    this.hash = uri.hash;
+                    this.absolute = uri.absolute;
                 }
                 else {
-                    this.pathname = baseUri.pathname;
-                    if (!uri.search) {
-                        this.search = baseUri.search;
-                        if (!uri.hash) {
-                            this.hash = baseUri.hash;
+                    this.hostname = baseUri.hostname;
+                    this.port = baseUri.port;
+                    if (uri.pathname) {
+                        if (uri.pathname.charAt(0) === '/') {
+                            this.pathname = uri.pathname;
+                        }
+                        else {
+                            if ((baseUri.absolute && !baseUri.pathname) || baseUri.pathname === "/") {
+                                this.pathname = '/' + uri.pathname;
+                            }
+                            else if (baseUri.pathname) {
+                                var parts = baseUri.pathname.split('/');
+                                parts[parts.length - 1] = uri.pathname;
+                                this.pathname = parts.join('/');
+                            }
+                        }
+                    }
+                    else {
+                        this.pathname = baseUri.pathname;
+                        if (uri.search) {
+                            this.search = uri.search;
+                        }
+                        else {
+                            this.search = baseUri.search;
                         }
                     }
                 }
             }
         }
-
         Object.freeze(this);
     }
     
@@ -315,7 +324,11 @@ export module QueryString {
       [key: string]: string | number | boolean | (string | number | boolean)[];
     }
 
-    export function stringify(obj: QueryStringMap): string {
+    export function stringify(obj: any): string {
+        if (!obj) {
+            return "";
+        }
+
         var qs: string[] = [];
         Object.getOwnPropertyNames(obj).forEach(name => {
             var value = obj[name];
