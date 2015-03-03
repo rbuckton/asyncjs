@@ -38,11 +38,22 @@ export class Promise<T> {
      * @param init A callback used to initialize the promise. This callback is passed two arguments: a resolve callback used resolve the promise with a value or the result of another promise, and a reject callback used to reject the promise with a provided reason or error.
      */
     constructor(init: (resolve: (value?: IPromise<T> | T) => void, reject: (reason?: any) => void) => void) {
-        if (hasMsNonUserCodeExceptions) Debug.setNonUserCodeExceptions = true;
-        if (typeof init !== "function") throw new TypeError("argument is not a Function object");
-        var resolve = (rejecting: boolean, result: any) => { resolve = null; this._resolve(rejecting, result); };
+        if (typeof init !== "function") {
+            throw new TypeError("argument is not a Function object");
+        }
+        if (hasMsNonUserCodeExceptions) {
+            Debug.setNonUserCodeExceptions = true;
+        }
+        var resolver = (rejecting: boolean, result: any) => {
+            if (resolver) {
+                resolver = null;
+                this._resolve(rejecting, result);
+            }
+        };   
+        var resolve = value => resolver(/*rejecting*/ false, value);
+        var reject = reason => resolver(/*rejecting*/ true, reason);
         try {
-            init(value => { resolve && resolve(false, value) }, error => { resolve && resolve(true, error) });
+            init(resolve, reject);
         }
         catch (error) {
             resolve(true, error);
@@ -105,16 +116,16 @@ export class Promise<T> {
                 resolve([]);
                 return;
             }
-
             var results = Array(countdown);
+            var resolver = (index: number) => (value: any) => {
+                results[index] = value;
+                if (--countdown === 0) {
+                    resolve(results);
+                }
+            };
             for (var i = 0; i < results.length; i++) {
-                this.resolve(values[i]).then(((index: number) => (value: any) => {
-                    results[index] = value;
-                    if (--countdown == 0) {
-                        resolve(results);
-                    }
-                })(i), reject);
-            }
+                this.resolve(values[i]).then(resolver(i), reject);
+            }            
         });
     }
 
@@ -127,7 +138,7 @@ export class Promise<T> {
 
     public static race(values: any[]): Promise<any> {
         return new this((resolve, reject) => {
-            var promises: Promise<any>[] = values.map<Promise<any>>(this.resolve, this);
+            var promises = values.map<Promise<any>>(value => this.resolve(value));
             promises.forEach(promise => promise.then<any>(resolve, reject));
         });
     }
@@ -160,21 +171,32 @@ export class Promise<T> {
      */
     public finally(onsettled: () => IPromise<void> | void): Promise<T> {
         return this._await(
-            value => new Promise<void>(resolve => resolve(onsettled())).then(() => Promise.resolve(value)),
+            value => new Promise<void>(resolve => resolve(onsettled())).then(() => value),
             reason => new Promise<void>(resolve => resolve(onsettled())).then(() => Promise.reject(reason)));
     }
 
     private _resolve(rejecting: boolean, result: any): void {
-        if (hasMsNonUserCodeExceptions) Debug.setNonUserCodeExceptions = true;
         if (!rejecting) {
+            if (hasMsNonUserCodeExceptions) {
+                Debug.setNonUserCodeExceptions = true;
+            }
             try {
-                if (this === result) throw new TypeError("Cannot resolve a promise with itself");
+                if (this === result) {
+                    throw new TypeError("Cannot resolve a promise with itself");
+                }
                 if (result !== null && (typeof result === "object" || typeof result === "function") && "then" in result) {
                     var then = result.then;
                     if (typeof then === "function") {
-                        var resolve = (rejecting: boolean, result: any) => { resolve = null; this._resolve(rejecting, result) };
+                        var resolver = (rejecting: boolean, result: any) => {
+                            if (resolver) {
+                                resolver = null;
+                                this._resolve(rejecting, result)
+                            }
+                        };
+                        var resolve = value => resolver(/*rejecting*/false, value);
+                        var reject = reason => resolver(/*rejecting*/true, value);
                         try {
-                            then.call(result,(result: any) => { resolve && resolve(false, result) },(result: any) => { resolve && resolve(true, result) });
+                            then.call(result, resolve, reject);
                         }
                         catch (error) {
                             resolve(true, error);
@@ -189,12 +211,14 @@ export class Promise<T> {
                 rejecting = true;
             }
         }
-
         this._settle(rejecting, result);
     }
 
     private _await(onresolved: (value: any) => any, onrejected: (value: any) => any): Promise<any> {
-        var id = hasMsDebug && Debug.msTraceAsyncOperationStarting("Promise.then");
+        var id: number;
+        if (hasMsDebug) {
+            Debug.msTraceAsyncOperationStarting("Promise.then");
+        }
         return new (<typeof Promise>this.constructor)((resolve, reject) => {
             var prev = this._settle;
             this._settle = (rejecting: boolean, result: any): void => {
@@ -214,26 +238,35 @@ export class Promise<T> {
     }
 
     private _forward(prev: (rejecting: boolean, result: any) => void, resolve: (value: any) => void, reject: (value: any) => void, rejecting: boolean, result: any, onresolved: (value: any) => any, onrejected: (error: any) => any, id: number): void {
-        prev && prev.call(this, rejecting, result);
+        if (prev) {
+            prev.call(this, rejecting, result);
+        }
         scheduleTask(() => {
-            if (hasMsNonUserCodeExceptions) Debug.setNonUserCodeExceptions = true;
-            try {
-                var handler = rejecting ? onrejected : onresolved;
-                hasMsDebug && Debug.msTraceAsyncOperationCompleted(id, rejecting ? Debug.MS_ASYNC_OP_STATUS_ERROR : Debug.MS_ASYNC_OP_STATUS_SUCCESS);
-                if (typeof handler === "function") {
-                    hasMsDebug && Debug.msTraceAsyncCallbackStarting(id);
+            if (hasMsNonUserCodeExceptions) {
+                Debug.setNonUserCodeExceptions = true;
+            }
+            if (hasMsDebug) {
+                Debug.msTraceAsyncOperationCompleted(id, rejecting ? Debug.MS_ASYNC_OP_STATUS_ERROR : Debug.MS_ASYNC_OP_STATUS_SUCCESS);
+            }
+            var handler = rejecting ? onrejected : onresolved;
+            if (typeof handler === "function") {
+                if (hasMsDebug) {
+                    Debug.msTraceAsyncCallbackStarting(id);
+                }
+                try {
                     result = handler(result);
                     rejecting = false;
                 }
+                catch (e) {
+                    result = e;
+                    rejecting = true;
+                }
+                finally {
+                    if (hasMsDebug) {
+                        Debug.msTraceAsyncCallbackCompleted();
+                    }
+                }
             }
-            catch (e) {
-                result = e;
-                rejecting = true;
-            }
-            finally {
-                hasMsDebug && Debug.msTraceAsyncCallbackCompleted();
-            }
-
             (rejecting ? reject : resolve)(result);
         });
     }

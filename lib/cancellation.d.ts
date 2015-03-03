@@ -13,14 +13,6 @@ export declare class CancellationTokenSource {
       */
     constructor(links?: CancellationToken[]);
     /**
-     * Gets a value indicating whether the token has received a cancellation signal.
-     */
-    canceled: boolean;
-    /**
-     * Gets the reason for cancellation, if one was supplied.
-     */
-    reason: any;
-    /**
      * Gets the `CancellationToken` for this source.
      */
     token: CancellationToken;
@@ -47,6 +39,10 @@ export declare class CancellationToken {
       * Gets an empty cancellation token that will never be canceled.
       */
     static none: CancellationToken;
+    /**
+      * Gets a value indicating whether the token can be canceled.
+      */
+    canBeCanceled: boolean;
     /**
       * Gets a value indicating whether the token has received a cancellation signal.
       */

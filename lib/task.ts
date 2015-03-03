@@ -12,43 +12,78 @@ See the License for the specific language governing permissions and
 limitations under the License. 
 ***************************************************************************** */
 import list = require('./list');
+import cancellation = require('./cancellation');
 import LinkedList = list.LinkedList;
 import LinkedListNode = list.LinkedListNode;
+import CancellationToken = cancellation.CancellationToken;
+import CancellationTokenRegistration = cancellation.CancellationTokenRegistration;
 
 declare var process: any;
 
 export type Handle = {};
 
-export function scheduleTask(task: () => void): Handle {
+function getOrCreateQueue(): LinkedList<() => void> {
     if (!queue) {
         queue = new LinkedList<() => void>();
     }
-    
-    var node = queue.addLast(task);
-    scheduleTick();
-    return node;
+    return queue;
 }
 
-export function cancelTask(handle: Handle): void {
-    if (!handle) {
-        return;
+function scheduleImmediateTask(task: () => void, token: CancellationToken): void {
+    if (token.canBeCanceled) {
+        var registration = token.register(() => {
+            if (node.list === recoveryQueue || node.list === queue) {
+                node.list.deleteNode(node);
+            }
+            if (recoveryQueue && !recoveryQueue.first) {
+                recoveryQueue = undefined;
+            }
+            if (queue && !queue.first) {
+                queue = undefined;
+            }
+            if (!recoveryQueue && !queue) {
+                cancelTick();
+            }
+        });
+        var node = getOrCreateQueue().addLast(() => {
+            registration.unregister();
+            registration = undefined;
+            if (!token.canceled) {
+                task();
+            }
+        });
     }
+    else {
+        getOrCreateQueue().addLast(task);
+    }
+    scheduleTick();
+}
 
-    var node = <LinkedListNode<() => void>>handle;
-    if (node.list === recoveryQueue || node.list === queue) {
-        node.list.deleteNode(node);
+function scheduleDelayedTask(task: () => void, delay: number, token: CancellationToken): void {
+    if (token.canBeCanceled) {
+        var registration = token.register(() => {
+            handle = undefined;
+            clearTimeout(handle);
+        })
+        var handle = setTimeout(() => {
+            registration.unregister();
+            registration = undefined;
+            if (!token.canceled) {
+                task();
+            }
+        }, delay);
     }
+    else {
+        setTimeout(task, delay);
+    }
+}
 
-    if (recoveryQueue && !recoveryQueue.first) {
-        recoveryQueue = undefined;
+export function scheduleTask(task: () => void, delay: number = 0, token: CancellationToken = CancellationToken.none): void {
+    if (delay > 0) {
+        scheduleDelayedTask(task, delay, token);
     }
-    
-    if (queue && !queue.first) {
-        queue = undefined;
-    }
-
-    if (!recoveryQueue && !queue) {
-        cancelTick();
+    else {
+        scheduleImmediateTask(task, token);
     }
 }
 

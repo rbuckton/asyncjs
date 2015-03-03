@@ -56,20 +56,6 @@ export class CancellationTokenSource {
     }
 
     /**
-     * Gets a value indicating whether the token has received a cancellation signal.
-     */
-    public get canceled(): boolean {
-        return this._canceled;
-    }
-
-    /**
-     * Gets the reason for cancellation, if one was supplied.
-     */
-    public get reason(): any {
-        return this._reason;
-    }
-
-    /**
      * Gets the `CancellationToken` for this source.
      */
     public get token(): CancellationToken {
@@ -138,7 +124,6 @@ export class CancellationTokenSource {
     }
 
     private _register(callback: (reason: any) => void): CancellationTokenRegistration {
-        if (typeof callback !== "function") throw new TypeError("argument is not a Function object");
         if (this._canceled) {
             callback(this._reason);
             return emptyRegistration;
@@ -188,6 +173,13 @@ export class CancellationToken {
         }
         return CancellationToken._none;
     }
+
+    /**
+      * Gets a value indicating whether the token can be canceled.
+      */
+    public get canBeCanceled(): boolean {
+        return !!this._source && !Object.isFrozen(this._source);
+    }
     
     /**
       * Gets a value indicating whether the token has received a cancellation signal.
@@ -227,10 +219,12 @@ export class CancellationToken {
       * @returns A `CancellationTokenRegistration` that that can be used to cancel the cleanup request.
       */
     public register(callback: (reason: any) => void): CancellationTokenRegistration {
+        if (typeof callback !== "function") {
+            throw new TypeError("Argument is not a Function object");
+        }
         if (!this._source) {
             return emptyRegistration;
-        }
-        
+        }        
         return (<any>this._source)._register(callback);
     }
 }

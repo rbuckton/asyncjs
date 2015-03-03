@@ -18,46 +18,19 @@ import Promise = promise.Promise;
 import CancellationToken = cancellation.CancellationToken;
 import CancellationTokenRegistration = cancellation.CancellationTokenRegistration;
 import scheduleTask = task.scheduleTask;
-import cancelTask = task.cancelTask;
 
-export function sleep(delay: number = 0, token?: CancellationToken): Promise<void> {
+export function sleep(delay: number = 0, token: CancellationToken = CancellationToken.none): Promise<void> {
     if (typeof delay !== "number") {
         throw new TypeError("Number expected.");
     }
-
-    if (token && token.canceled) {
+    if (token.canceled) {
         return Promise.reject<void>(token.reason);
     }
-
-    var schedule: (task: () => void) => any;
-    var cancel: (handle: any) => void;
-
-    if (delay <= 0) {
-        schedule = scheduleTask;
-        cancel = cancelTask;
+    if (!token.canBeCanceled && delay <= 0) {
+        return Promise.resolve();
     }
-    else {
-        schedule = task => setTimeout(task, delay);
-        cancel = clearTimeout;
-    }
-
     return new Promise<void>((resolve, reject) => {
-        var registration: CancellationTokenRegistration;
-        var handle = schedule(() => {
-            if (registration) {
-                registration.unregister();
-                registration = undefined;
-            }
-
-            resolve();
-        });
-
-        if (token) {
-            registration = token.register(reason => {
-                cancel(handle);
-                handle = undefined;
-                reject(reason);
-            });
-        }
+        token.register(reject);
+        scheduleTask(resolve, delay, token);
     });
 }
