@@ -1,7 +1,7 @@
 var fs = require('fs');
 var spawn = require('child_process').spawn;
 
-var tscPath = "node_modules/typescript/bin/tsc.js";
+var tscPath = "tsc/tsc.js"; // TODO: temporarily using LKG from TypeScript master. Switch back to "node_modules/typescript/bin/tsc.js"
 var host = (process.env.host || process.env.SOURCEMAP_HOST || "node");
 var main = "./lib/async.js";
 var browser = "./async.js";
