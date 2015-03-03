@@ -1,6 +1,7 @@
-import cancellation = require('./cancellation');
 import promise = require('./promise');
+import cancellation = require('./cancellation');
 import Promise = promise.Promise;
+import CancellationToken = cancellation.CancellationToken;
 /**
  * A Uri
  */
@@ -226,7 +227,7 @@ export declare class HttpClient {
      * @param token A token that can be used to cancel the request
      * @returns A future result for the response
      */
-    getAsync(url: string | Uri, token?: cancellation.CancellationToken): Promise<HttpResponse>;
+    getAsync(url: string | Uri, token?: CancellationToken): Promise<HttpResponse>;
     /**
      * Gets the response from issuing an HTTP POST to the requested url
      * @param url The url for the request
@@ -234,7 +235,7 @@ export declare class HttpClient {
      * @param token A token that can be used to cancel the request
      * @returns A future result for the response
      */
-    postAsync(url: string | Uri, body: any, token?: cancellation.CancellationToken): Promise<HttpResponse>;
+    postAsync(url: string | Uri, body: any, token?: CancellationToken): Promise<HttpResponse>;
     /**
      * Gets the response from issuing an HTTP POST of a JSON serialized value to the requested url
      * @param url The url for the request
@@ -243,7 +244,7 @@ export declare class HttpClient {
      * @param token A token that can be used to cancel the request
      * @returns A future result for the response
      */
-    postJsonAsync(url: string | Uri, value: any, jsonReplacer?: any[] | ((key: string, value: any) => string), token?: cancellation.CancellationToken): Promise<HttpResponse>;
+    postJsonAsync(url: string | Uri, value: any, jsonReplacer?: any[] | ((key: string, value: any) => string), token?: CancellationToken): Promise<HttpResponse>;
     /**
      * Gets the response from issuing an HTTP PUT to the requested url
      * @param url The url for the request
@@ -251,7 +252,7 @@ export declare class HttpClient {
      * @param token A token that can be used to cancel the request
      * @returns A future result for the response
      */
-    putAsync(url: string | Uri, body: any, token?: cancellation.CancellationToken): Promise<HttpResponse>;
+    putAsync(url: string | Uri, body: any, token?: CancellationToken): Promise<HttpResponse>;
     /**
      * Gets the response from issuing an HTTP PUT of a JSON serialized value to the requested url
      * @param url The url for the request
@@ -260,22 +261,22 @@ export declare class HttpClient {
      * @param token A token that can be used to cancel the request
      * @returns A future result for the response
      */
-    putJsonAsync(url: string | Uri, value: any, jsonReplacer?: any[] | ((key: string, value: any) => string), token?: cancellation.CancellationToken): Promise<HttpResponse>;
+    putJsonAsync(url: string | Uri, value: any, jsonReplacer?: any[] | ((key: string, value: any) => string), token?: CancellationToken): Promise<HttpResponse>;
     /**
      * Gets the response from issuing an HTTP DELETE to the requested url
      * @param url The url for the request
      * @param token A token that can be used to cancel the request
      * @returns A future result for the response
      */
-    deleteAsync(url: string | Uri, token?: cancellation.CancellationToken): Promise<HttpResponse>;
+    deleteAsync(url: string | Uri, token?: CancellationToken): Promise<HttpResponse>;
     /**
      * Sends the provided request and returns the response
      * @param request {HttpRequest} An HTTP request to send
      * @param token {futures.CancellationToken} A token that can be used to cancel the request
      * @returns {futures.Promise<HttpResponse>} A future result for the response
      */
-    sendAsync(request: HttpRequest, token?: cancellation.CancellationToken): Promise<HttpResponse>;
-    getJsonpAsync<T>(url: string | Uri, callbackArg?: string, noCache?: boolean, token?: cancellation.CancellationToken): Promise<T>;
+    sendAsync(request: HttpRequest, token?: CancellationToken): Promise<HttpResponse>;
+    getJsonpAsync<T>(url: string | Uri, callbackArg?: string, noCache?: boolean, token?: CancellationToken): Promise<T>;
 }
 /**
  * An error raised during an http request

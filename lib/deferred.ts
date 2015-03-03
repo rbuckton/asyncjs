@@ -12,8 +12,8 @@ See the License for the specific language governing permissions and
 limitations under the License. 
 ***************************************************************************** */
 import promise = require('./promise');
-import IPromise = promise.IPromise;
 import Promise = promise.Promise;
+import IPromise = promise.IPromise;
 
 export class Deferred<T> {
     private _promise: Promise<T>;

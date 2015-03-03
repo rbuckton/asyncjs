@@ -1,6 +1,6 @@
 import promise = require('./promise');
-import IPromise = promise.IPromise;
 import Promise = promise.Promise;
+import IPromise = promise.IPromise;
 export declare class Deferred<T> {
     private _promise;
     private _resolve;

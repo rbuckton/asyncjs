@@ -6,6 +6,6 @@ export import IPromise = promise.IPromise;
 export import Promise = promise.Promise;
 export import Deferred = deferred.Deferred;
 export import CancellationToken = cancellation.CancellationToken;
-export import CancellationRegistration = cancellation.CancellationRegistration;
+export import CancellationTokenRegistration = cancellation.CancellationTokenRegistration;
 export import CancellationTokenSource = cancellation.CancellationTokenSource;
 export import sleep = utils.sleep;

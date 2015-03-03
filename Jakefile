@@ -1,12 +1,17 @@
 var fs = require('fs');
+var os = require('os');
+var path = require('path');
 var spawn = require('child_process').spawn;
 
-var tscPath = "tsc/tsc.js"; // TODO: temporarily using LKG from TypeScript master. Switch back to "node_modules/typescript/bin/tsc.js"
+var tscPath = "node_modules/typescript/bin/tsc.js";
 var host = (process.env.host || process.env.SOURCEMAP_HOST || "node");
+var jakefile = "./Jakefile";
+var dotBuilt = "./.built";
 var main = "./lib/async.js";
 var browser = "./async.js";
-var release = false;
-
+var configuration;
+var copyrightNotice;
+var finalOpts;
 var opts = {
   "default": {
     "tsc": {
@@ -40,6 +45,7 @@ var opts = {
 };
 
 var modules = [
+  "./lib/list",
   "./lib/task",
   "./lib/promise",
   "./lib/deferred",
@@ -54,33 +60,93 @@ var external = [
   "./lib/msdebug.d.ts"
 ];
 
-var prereqs = ["Jakefile"];
+var prereqs = [jakefile, dotBuilt];
 var sources = external.concat(modules.map(asTypeScript));
 var compiledJavaScript = modules.map(asJavaScript);
 var compiledDeclarations = modules.map(asDeclaration);
 var compiledSourceMaps = modules.map(asSourceMap);
-var outputs = compiledJavaScript.concat(compiledDeclarations).concat(compiledSourceMaps);
+var outputs = [dotBuilt].concat(compiledJavaScript).concat(compiledDeclarations).concat(compiledSourceMaps);
 
+file(jakefile);
+file(dotBuilt);
 tsc(main, sources, { });
 browserify(browser, compiledJavaScript, { });
 
-task("release", function() { release = true; });
-task("local", [main]);
-task("clean", function() { outputs.forEach(cleanFile); });
 task("default", ["local"]);
-task("browser", ["local", browser]);
 
-function mergeOptions(options, tool) {
+desc("cleans existing build outputs.");
+task("clean", function() { 
+  outputs.forEach(cleanFile); 
+});
+
+desc("builds in release mode.");
+task("release", function() {
+  configuration = "release";
+});
+
+task("pre-build", function(arg) {
+  finalOpts = {
+    configuration: getConfiguration(),
+    tsc: mergeOptions("tsc"),
+    browserify: mergeOptions("browserify")
+  };
+
+  var finalOptsText = JSON.stringify(finalOpts, undefined, "  ");
+  if (fs.existsSync(dotBuilt)) {
+    if (fs.readFileSync(dotBuilt, "utf8") === finalOptsText) {
+      return;
+    }
+  }
+
+  fs.writeFileSync(dotBuilt, finalOptsText, "utf8");
+});
+
+task("post-build", function() {
+  if (getConfiguration() === "release") {    
+    insertLicense(browser);
+    compiledJavaScript.forEach(insertLicense);
+    compiledDeclarations.forEach(insertLicense);
+  }
+});
+
+desc("builds project outputs.");
+task("local", ["pre-build", dotBuilt, main, browser, "post-build"]);
+
+function getCopyrightNotice() {
+  if (!copyrightNotice) {
+    copyrightNotice = fs.readFileSync("CopyrightNotice.txt", "utf8");
+  }
+  return copyrightNotice;
+}
+
+function getConfiguration() {
+  if (!configuration) {
+    var release = process.env.release || process.env.RELEASE;
+    configuration = /^(t(rue)?|y(es)?|-?1)$/i.test(release) ? "release" : "debug";
+  }
+  return configuration;
+}
+
+function insertLicense(path) {
+  if (fs.existsSync(path)) {
+    var src = fs.readFileSync(path, "utf8");
+    if (!/^\/\*!/.test(src)) {
+      src = getCopyrightNotice() + src;
+      fs.writeFileSync(path, src, "utf8");
+    }
+  }
+}
+
+function mergeOptions(tool) {
     var merged = {};
     merged = copyProperties(opts.default[tool], merged);
-    merged = copyProperties(release ? opts.release[tool] : opts.debug[tool], merged);
-    merged = copyProperties(options, merged);
+    merged = copyProperties(opts[getConfiguration()][tool], merged);
     return merged;
 }
 
 function browserify(outFile, sources, options) {
   file(outFile, prereqs.concat(sources), { async: true }, function() {
-    options = mergeOptions(options, 'browserify');
+    options = copyProperties(finalOpts.browserify, options);
     options.entries = sources;
     var _browserify = require("browserify");
     _browserify(options).bundle(function(error, src) {    
@@ -93,13 +159,12 @@ function browserify(outFile, sources, options) {
         complete();
       }
     });
-  });
+  });  
 }
 
 function tsc(outFile, sources, options) {
   file(outFile, prereqs.concat(sources), { async: true }, function() {
-    options = mergeOptions(options, "tsc");
-
+    options = copyProperties(finalOpts.tsc, options);
     var args = [tscPath];
     for (var key in options) {
       var value = options[key];
@@ -113,7 +178,7 @@ function tsc(outFile, sources, options) {
     args = args.concat(sources);
 
     console.log("%s %s\n", host, args.join(" "));
-
+    
     var tsc = spawn(host, args, { stdio: "inherit" });
     tsc.on("exit", function (code) {
       if (code === 0) {

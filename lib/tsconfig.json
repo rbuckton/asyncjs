@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES5",
+    "module": "commonjs",
+    "sourceMap": true
+  },
+  "files": [
+    "node.d.ts",
+    "msdebug.d.ts",
+    "list.ts",
+    "task.ts",
+    "promise.ts",
+    "deferred.ts",
+    "cancellation.ts",
+    "utils.ts",
+    "httpclient.ts",
+    "async.ts"
+  ]
+}

@@ -11,13 +11,12 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and 
 limitations under the License. 
 ***************************************************************************** */
-import cancellation = require('./cancellation');
 import promise = require('./promise');
-
+import cancellation = require('./cancellation');
 import Promise = promise.Promise;
 import CancellationToken = cancellation.CancellationToken;
-import CancellationRegistration = cancellation.CancellationRegistration;
-import CancellationTokenSource = cancellation.CancellationTokenSource
+import CancellationTokenSource = cancellation.CancellationTokenSource;
+import CancellationTokenRegistration = cancellation.CancellationTokenRegistration;
 
 var hasMsNonUserCodeExceptions =
     typeof Debug !== "undefined" &&
@@ -620,7 +619,7 @@ export class HttpClient {
      * @param token A token that can be used to cancel the request
      * @returns A future result for the response
      */
-    public getAsync(url: string | Uri, token?: cancellation.CancellationToken): Promise<HttpResponse> {
+    public getAsync(url: string | Uri, token?: CancellationToken): Promise<HttpResponse> {
         return this.sendAsync(new HttpRequest("GET", url), token);
     }
 
@@ -631,7 +630,7 @@ export class HttpClient {
      * @param token A token that can be used to cancel the request
      * @returns A future result for the response
      */
-    public postAsync(url: string | Uri, body: any, token?: cancellation.CancellationToken): Promise<HttpResponse> {
+    public postAsync(url: string | Uri, body: any, token?: CancellationToken): Promise<HttpResponse> {
         var request = new HttpRequest("POST", url);
         request.body = body;
         return this.sendAsync(request, token);
@@ -645,7 +644,7 @@ export class HttpClient {
      * @param token A token that can be used to cancel the request
      * @returns A future result for the response
      */
-    public postJsonAsync(url: string | Uri, value: any, jsonReplacer?: any[] | ((key: string, value: any) => string), token?: cancellation.CancellationToken): Promise<HttpResponse> {
+    public postJsonAsync(url: string | Uri, value: any, jsonReplacer?: any[] | ((key: string, value: any) => string), token?: CancellationToken): Promise<HttpResponse> {
         var request = new HttpRequest("POST", url);
         request.body = JSON.stringify(value, <any>jsonReplacer);
         request.setRequestHeader("Content-Type", "application/json");
@@ -659,7 +658,7 @@ export class HttpClient {
      * @param token A token that can be used to cancel the request
      * @returns A future result for the response
      */
-    public putAsync(url: string | Uri, body: any, token?: cancellation.CancellationToken): Promise<HttpResponse> {
+    public putAsync(url: string | Uri, body: any, token?: CancellationToken): Promise<HttpResponse> {
         var request = new HttpRequest("PUT", url);
         request.body = body;
         return this.sendAsync(request, token);
@@ -673,7 +672,7 @@ export class HttpClient {
      * @param token A token that can be used to cancel the request
      * @returns A future result for the response
      */
-    public putJsonAsync(url: string | Uri, value: any, jsonReplacer?: any[] | ((key: string, value: any) => string), token?: cancellation.CancellationToken): Promise<HttpResponse> {
+    public putJsonAsync(url: string | Uri, value: any, jsonReplacer?: any[] | ((key: string, value: any) => string), token?: CancellationToken): Promise<HttpResponse> {
         var request = new HttpRequest("PUT", url);
         request.body = JSON.stringify(value, <any>jsonReplacer);
         request.setRequestHeader("Content-Type", "application/json");
@@ -686,7 +685,7 @@ export class HttpClient {
      * @param token A token that can be used to cancel the request
      * @returns A future result for the response
      */
-    public deleteAsync(url: string | Uri, token?: cancellation.CancellationToken): Promise<HttpResponse> {
+    public deleteAsync(url: string | Uri, token?: CancellationToken): Promise<HttpResponse> {
         return this.sendAsync(new HttpRequest("DELETE", url), token);
     }
 
@@ -696,13 +695,13 @@ export class HttpClient {
      * @param token {futures.CancellationToken} A token that can be used to cancel the request
      * @returns {futures.Promise<HttpResponse>} A future result for the response
      */
-    public sendAsync(request: HttpRequest, token?: cancellation.CancellationToken): Promise<HttpResponse> {
+    public sendAsync(request: HttpRequest, token?: CancellationToken): Promise<HttpResponse> {
         if (this._closed) throw new Error("Object doesn't support this action");
 
         return new Promise<HttpResponse>((resolve, reject) => {
 
             // create a linked token
-            var cts = new CancellationTokenSource(this._cts.token, token);
+            var cts = new CancellationTokenSource([this._cts.token, token]);
 
             // throw if we're already canceled, the promise will be rejected
             cts.token.throwIfCanceled();
@@ -812,7 +811,7 @@ export class HttpClient {
 
             // attach a timeout
             if (this.timeout > 0) {
-                cts.cancelAfter(this.timeout);
+                setTimeout(() => cts.cancel(new Error("Operation timed out.")), this.timeout);
                 xhr.timeout = this.timeout;
             }
 
@@ -822,13 +821,13 @@ export class HttpClient {
         });
     }
 
-    public getJsonpAsync<T>(url: string | Uri, callbackArg: string = "callback", noCache: boolean = false, token?: cancellation.CancellationToken): Promise<T> {
+    public getJsonpAsync<T>(url: string | Uri, callbackArg: string = "callback", noCache: boolean = false, token?: CancellationToken): Promise<T> {
         if (this._closed) throw new Error("Object doesn't support this action");
         if (typeof document === "undefined") throw new Error("JSON-P is not supported in this host.");
 
         return new Promise<T>((resolve, reject) => {
             // create a linked token
-            var cts = new CancellationTokenSource(this._cts.token, token);
+            var cts = new CancellationTokenSource([this._cts.token, token]);
 
             // throw if we're already canceled, the promise will be rejected
             cts.token.throwIfCanceled();
@@ -919,7 +918,7 @@ export class HttpClient {
             
             // set a timeout before we no longer care about the result.
             if (this.timeout) {
-                cts.cancelAfter(this.timeout);
+                setTimeout(() => cts.cancel(new Error("Operation timed out.")), this.timeout);
             }
 
             (<any>window)[name] = onload;

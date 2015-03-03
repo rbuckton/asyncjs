@@ -11,163 +11,48 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and 
 limitations under the License. 
 ***************************************************************************** */
+import list = require('./list');
+import LinkedList = list.LinkedList;
+import LinkedListNode = list.LinkedListNode;
+
 var hasMsNonUserCodeExceptions =
     typeof Debug !== "undefined" &&
     typeof Debug.setNonUserCodeExceptions === "boolean";
 
 /**
- * A token used to recieve a cancellation signal.
- */
-export interface CancellationToken {
-    /**
-     * Gets a value indicating whether the token has received a cancellation signal.
-     */
-    canceled: boolean;
-
-    /**
-     * Gets the reason for cancellation, if one was supplied.
-     */
-    reason: any;
-
-    /**
-     * Throws an `Error` if the token has received a cancellation signal.
-     */
-    throwIfCanceled(): void;
-
-    /**
-     * Requests a callback when the token receives a cancellation signal, to perform additional cleanup.
-     * @param callback The callback to execute 
-     * @returns A `CancellationRegistration` that that can be used to cancel the cleanup request.
-     */
-    register(callback: (reason: any) => void): CancellationRegistration;
-}
-
-/**
- * An object used to unregister a callback delegate registered to a `CancellationToken`
- */
-export interface CancellationRegistration {
-    /**
-     * Unregisters the callback
-     */
-    unregister(): void;
-}
-
-/**
- * A source for cancellation
- */
+  * A source for cancellation
+  */
 export class CancellationTokenSource {
-
     private static _canceled: CancellationToken;
-
-    private _callbacks: Map<any, (reason: any) => void>;
-    private _links: Array<CancellationRegistration>;
+    private _callbacks: LinkedList<(reason: any) => void>;
+    private _links: Array<CancellationTokenRegistration>;
     private _token: CancellationToken;
-    private _timer: any;
     private _canceled: boolean;
     private _reason: any;
 
     /**
-     * A source for cancellation
-     * @param delay The number of milliseconds to wait before cancelling the source
-     * @param links Other `CancellationToken` instances that will cancel this source if the tokens are canceled.
-     */
-    constructor(delay: number, ...links: CancellationToken[]);
-
-    /**
-     * A source for cancellation
-     * @param delay The number of milliseconds to wait before cancelling the source
-     * @param links Other `CancellationToken` instances that will cancel this source if the tokens are canceled.
-     */
-    constructor(delay: number, links: CancellationToken[]);
-
-    /**
-     * A source for cancellation
-     * @param delay The number of milliseconds to wait before cancelling the source
-     */
-    constructor(delay: number);
-
-    /**
-     * A source for cancellation
-     * @param links Other `CancellationToken` instances that will cancel this source if the tokens are canceled.
-     */
-    constructor(...links: CancellationToken[]);
-
-    /**
-     * A source for cancellation
-     * @param links Other `CancellationToken` instances that will cancel this source if the tokens are canceled.
-     */
-    constructor(links: CancellationToken[]);
-
-    constructor(...args: any[]) {
-        var delay = -1;
-        var links: CancellationToken[];
-
-        if (typeof args[0] === "number") {
-            delay = args.shift() | 0;
-            if (delay < 0) throw new RangeError();
-        }
-
-        if (Array.isArray(args[0])) {
-            links = args.shift();
-        }
-        else if (args.length) {
-            links = args;
-        }
-
-        var source = this;
-        this._token = Object.freeze({
-            get canceled(): boolean {
-                return source._canceled;
-            },
-            get reason(): any {
-                return source._reason;
-            },
-            throwIfCanceled(): void {
-                if (source._canceled) {
-                    throw source._reason;
-                }
-            },
-            register(callback: (reason: any) => void): CancellationRegistration {
-                return source._register(callback);
-            }
-        });
-
+      * @param links Other `CancellationToken` instances that will cancel this source if the tokens are canceled.
+      */
+    constructor(links?: CancellationToken[]) {
+        this._token = new CancellationToken(this);
+        Object.defineProperty(this, "_token", { writable: false, configurable: false });
         if (links) {
-            this._links = new Array<CancellationRegistration>();
+            this._links = new Array<CancellationTokenRegistration>();
             for (var i = 0, l = links.length; i < l; i++) {
                 var link = links[i];
                 if (!link) {
                     continue;
                 }
-
                 if (link.canceled) {
                     this._canceled = true;
                     this._reason = link.reason;
                     return;
                 }
-
                 this._links.push(link.register(reason => {
-                    this._cancelCore(reason);
+                    this.cancel(reason);
                 }));
             }
         }
-
-        if (delay >= 0) {
-            this.cancelAfter(delay);
-        }
-    }
-
-    /**
-     * Gets an already cancelled `CancellationToken`.
-     */
-    public static get canceled(): CancellationToken {
-        if (!CancellationTokenSource._canceled) {
-            var cts = new CancellationTokenSource();
-            cts.cancel();
-            CancellationTokenSource._canceled = cts.token;
-        }
-
-        return CancellationTokenSource._canceled;
     }
 
     /**
@@ -199,97 +84,14 @@ export class CancellationTokenSource {
         if (this._canceled) {
             return;
         }
-
         this._throwIfFrozen();
-        this._cancelCore(reason);
-    }
-
-    /**
-     * Signals the source is canceled after a delay.
-     * @param delay The number of milliseconds to delay before signalling cancellation.
-     * @param reason An optional reason for the cancellation.
-     */
-    public cancelAfter(delay: number, reason?: any): void {
-        if (this._canceled) {
-            return;
-        }
-
-        this._throwIfFrozen();
-        this._clearTimeout();
-        this._timer = setTimeout(CancellationTokenSource._ontimeout, delay, this, reason);
-    }
-
-    /**
-     * Closes the CancellationSource, preventing any future cancellation signal.
-     */
-    public close(): void {
-        if (Object.isFrozen(this)) {
-            return;
-        }
-
-        this._clearTimeout();
-
-        if (this._links) {
-            var links = this._links;
-            for (var i = 0, l = links.length; i < l; i++) {
-                links[i].unregister();
-            }
-        }
-
-        if (this._callbacks) {
-            this._callbacks.clear();
-        }
-
-        this._links = null;
-        this._callbacks = null;
-
-        Object.freeze(this);
-    }
-
-    private static _ontimeout(source: CancellationTokenSource, reason: any): void {
-        source._timer = null;
-
-        if (!Object.isFrozen(source)) {
-            source._cancelCore(reason);
-        }
-    }
-
-    private _register(callback: (reason: any) => void): CancellationRegistration {
-        if (typeof callback !== "function") throw new TypeError("argument is not a Function object");
-
-        if (this._canceled) {
-            callback(this._reason);
-            return emptyRegistration;
-        }
-
-        if (Object.isFrozen(this)) {
-            return emptyRegistration;
-        }
-
-        var cookie = {};
-        var callbacks = this._callbacks || (this._callbacks = new Map<any,(reason: any) => void>());
-        callbacks.set(cookie, callback);
-
-        return {
-            unregister() {
-                callbacks.delete (cookie);
-            }
-        };
-    }
-
-    private _cancelCore(reason: any): void {
-        if (hasMsNonUserCodeExceptions) Debug.setNonUserCodeExceptions = true;
-        if (this._canceled) {
-            return;
-        }
-
-        this._clearTimeout();
-
         if (reason == null) {
             reason = new Error("operation was canceled.");
         }
-
         if (reason instanceof Error && !("stack" in reason)) {
+            if (hasMsNonUserCodeExceptions) {
+                Debug.setNonUserCodeExceptions = true;
+            }
             try {
                 throw reason;
             }
@@ -297,14 +99,12 @@ export class CancellationTokenSource {
                 reason = error;
             }
         }
-
+        var callbacks = this._callbacks;
         this._canceled = true;
         this._reason = reason;
-
-        if (this._callbacks) {
-            var callbacks = this._callbacks;
-            this._callbacks = null;
-
+        this._callbacks = null;
+        Object.freeze(this);
+        if (callbacks) {
             try {
                 callbacks.forEach(callback => {
                     callback(reason);
@@ -316,11 +116,47 @@ export class CancellationTokenSource {
         }
     }
 
-    private _clearTimeout(): void {
-        if (this._timer != null) {
-            clearTimeout(this._timer);
-            this._timer = null;
+    /**
+     * Closes the CancellationSource, preventing any future cancellation signal.
+     */
+    public close(): void {
+        if (Object.isFrozen(this)) {
+            return;
         }
+        if (this._links) {
+            var links = this._links;
+            for (var i = 0, l = links.length; i < l; i++) {
+                links[i].unregister();
+            }
+        }
+        if (this._callbacks) {
+            this._callbacks.clear();
+        }
+        this._links = null;
+        this._callbacks = null;
+        Object.freeze(this);
+    }
+
+    private _register(callback: (reason: any) => void): CancellationTokenRegistration {
+        if (typeof callback !== "function") throw new TypeError("argument is not a Function object");
+        if (this._canceled) {
+            callback(this._reason);
+            return emptyRegistration;
+        }
+        if (Object.isFrozen(this)) {
+            return emptyRegistration;
+        }
+        var callbacks = this._callbacks;
+        if (!callbacks) {
+            callbacks = new LinkedList<(reason: any) => void>();
+            this._callbacks = callbacks;
+        }        
+        var cookie = callbacks.addLast(callback);
+        return Object.freeze({
+            unregister() {
+                callbacks.deleteNode(cookie);
+            }
+        });
     }
 
     private _throwIfFrozen(): void {
@@ -330,4 +166,83 @@ export class CancellationTokenSource {
     }
 }
 
-var emptyRegistration: CancellationRegistration = Object.freeze({ unregister() { } });
+/**
+  * A token used to recieve a cancellation signal.
+  */
+export class CancellationToken {
+    private static _none: CancellationToken;
+    private _source: CancellationTokenSource;
+    
+    /*@internal*/
+    constructor(source: CancellationTokenSource) {
+        this._source = source;
+        Object.freeze(this);
+    }
+    
+    /**
+      * Gets an empty cancellation token that will never be canceled.
+      */
+    public static get none(): CancellationToken {
+        if (!CancellationToken._none) {            
+            CancellationToken._none = new CancellationToken(/*source*/ undefined);
+        }
+        return CancellationToken._none;
+    }
+    
+    /**
+      * Gets a value indicating whether the token has received a cancellation signal.
+      */
+    public get canceled(): boolean { 
+        if (!this._source) {
+            return false;
+        }
+        return (<any>this._source)._canceled;
+    }
+    
+    /**
+      * Gets the reason for cancellation, if one was supplied.
+      */
+    public get reason(): any {
+        if (!this._source) {
+            return undefined;
+        }
+        return (<any>this._source)._reason;
+    }
+    
+    /**
+      * Throws an `Error` if the token has received a cancellation signal.
+      */
+    public throwIfCanceled(reason: any = this.reason): void {
+        if (!this._source) {
+            return;
+        }
+        if (this.canceled) {
+            throw reason;
+        }
+    }
+    
+    /**
+      * Requests a callback when the token receives a cancellation signal to perform additional cleanup.
+      * @param callback The callback to execute 
+      * @returns A `CancellationTokenRegistration` that that can be used to cancel the cleanup request.
+      */
+    public register(callback: (reason: any) => void): CancellationTokenRegistration {
+        if (!this._source) {
+            return emptyRegistration;
+        }
+        
+        return (<any>this._source)._register(callback);
+    }
+}
+
+/**
+  * An object used to unregister a callback delegate registered to a `CancellationToken`
+  */
+export interface CancellationTokenRegistration {
+    /**
+      * Unregisters the callback
+      */
+    unregister(): void;
+}
+
+var emptyRegistration: CancellationTokenRegistration = Object.freeze({ unregister(): void { } });

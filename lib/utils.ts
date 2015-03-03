@@ -16,7 +16,7 @@ import cancellation = require('./cancellation');
 import task = require('./task');
 import Promise = promise.Promise;
 import CancellationToken = cancellation.CancellationToken;
-import CancellationRegistration = cancellation.CancellationRegistration;
+import CancellationTokenRegistration = cancellation.CancellationTokenRegistration;
 import scheduleTask = task.scheduleTask;
 import cancelTask = task.cancelTask;
 
@@ -42,7 +42,7 @@ export function sleep(delay: number = 0, token?: CancellationToken): Promise<voi
     }
 
     return new Promise<void>((resolve, reject) => {
-        var registration: CancellationRegistration;
+        var registration: CancellationTokenRegistration;
         var handle = schedule(() => {
             if (registration) {
                 registration.unregister();
