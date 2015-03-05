@@ -142,7 +142,7 @@ export class LinkedList<T> {
         this._checkNewNode(newNode);
         this._insert((<any>node)._next, newNode);        
     }
-
+    
     public has(value: T): boolean {
         if (this._cache && this._cache.value === value) {
             return true;
@@ -210,6 +210,24 @@ export class LinkedList<T> {
             return true;
         }
         return false;
+    }
+
+    public removeFirst(): T {
+        var node = this._head;
+        if (node) {
+            this._delete(node);
+            return node.value;
+        }
+        return undefined;
+    }
+
+    public removeLast(): T {
+        if (this._head) {
+            var node = (<any>this._head)._previous;
+            this._delete(node);
+            return node.value;
+        }
+        return undefined;
     }
 
     public clear(): void {

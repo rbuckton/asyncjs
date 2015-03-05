@@ -50,13 +50,13 @@ export class Promise<T> {
                 this._resolve(rejecting, result);
             }
         };   
-        var resolve = value => resolver(/*rejecting*/ false, value);
-        var reject = reason => resolver(/*rejecting*/ true, reason);
+        var resolve = (value: IPromise<T> | T) => resolver(/*rejecting*/ false, value);
+        var reject = (reason: any) => resolver(/*rejecting*/ true, reason);
         try {
             init(resolve, reject);
         }
         catch (error) {
-            resolve(true, error);
+            reject(error);
         }
     }
 
@@ -193,13 +193,13 @@ export class Promise<T> {
                                 this._resolve(rejecting, result)
                             }
                         };
-                        var resolve = value => resolver(/*rejecting*/false, value);
-                        var reject = reason => resolver(/*rejecting*/true, value);
+                        var resolve = (value: any) => resolver(/*rejecting*/false, value);
+                        var reject = (reason: any) => resolver(/*rejecting*/true, reason);
                         try {
                             then.call(result, resolve, reject);
                         }
                         catch (error) {
-                            resolve(true, error);
+                            reject(error);
                         }
 
                         return;

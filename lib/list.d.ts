@@ -36,6 +36,8 @@ export declare class LinkedList<T> {
     deleteNode(node: LinkedListNode<T>): void;
     deleteFirst(): boolean;
     deleteLast(): boolean;
+    removeFirst(): T;
+    removeLast(): T;
     clear(): void;
     forEach(callback: (value: T, node: LinkedListNode<T>, list: LinkedList<T>) => void): void;
     private _checkNode(node);
