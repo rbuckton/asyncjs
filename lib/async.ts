@@ -23,3 +23,4 @@ export import CancellationToken = cancellation.CancellationToken;
 export import CancellationTokenRegistration = cancellation.CancellationTokenRegistration;
 export import CancellationTokenSource = cancellation.CancellationTokenSource;
 export import sleep = utils.sleep;
+export import spin = utils.spin;
