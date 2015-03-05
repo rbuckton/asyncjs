@@ -29,7 +29,8 @@ function getOrCreateQueue(): LinkedList<() => void> {
     return queue;
 }
 
-function scheduleImmediateTask(task: () => void, token: CancellationToken): void {
+/*@internal*/
+export function scheduleImmediateTask(task: () => void, token: CancellationToken = CancellationToken.none): void {
     if (token.canBeCanceled) {
         var registration = token.register(() => {
             if (node.list === recoveryQueue || node.list === queue) {
@@ -59,7 +60,8 @@ function scheduleImmediateTask(task: () => void, token: CancellationToken): void
     scheduleTick();
 }
 
-function scheduleDelayedTask(task: () => void, delay: number, token: CancellationToken): void {
+/*@internal*/
+export function scheduleDelayedTask(task: () => void, delay: number, token: CancellationToken = CancellationToken.none): void {
     if (token.canBeCanceled) {
         var registration = token.register(() => {
             handle = undefined;
@@ -75,15 +77,6 @@ function scheduleDelayedTask(task: () => void, delay: number, token: Cancellatio
     }
     else {
         setTimeout(task, delay);
-    }
-}
-
-export function scheduleTask(task: () => void, delay: number = 0, token: CancellationToken = CancellationToken.none): void {
-    if (delay > 0) {
-        scheduleDelayedTask(task, delay, token);
-    }
-    else {
-        scheduleImmediateTask(task, token);
     }
 }
 

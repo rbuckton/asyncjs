@@ -12,7 +12,7 @@ See the License for the specific language governing permissions and
 limitations under the License. 
 ***************************************************************************** */
 import task = require('./task');
-import scheduleTask = task.scheduleTask;
+import scheduleImmediateTask = task.scheduleImmediateTask;
 
 var hasMsDebug = 
     typeof Debug !== "undefined" &&
@@ -138,8 +138,9 @@ export class Promise<T> {
 
     public static race(values: any[]): Promise<any> {
         return new this((resolve, reject) => {
-            var promises = values.map<Promise<any>>(value => this.resolve(value));
-            promises.forEach(promise => promise.then<any>(resolve, reject));
+            for (var i = 0; i < values.length; i++) {
+                this.resolve(values[i]).then<any>(resolve, reject);
+            }
         });
     }
 
@@ -241,7 +242,7 @@ export class Promise<T> {
         if (prev) {
             prev.call(this, rejecting, result);
         }
-        scheduleTask(() => {
+        scheduleImmediateTask(() => {
             if (hasMsNonUserCodeExceptions) {
                 Debug.setNonUserCodeExceptions = true;
             }

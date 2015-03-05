@@ -40,6 +40,17 @@ export declare class LinkedList<T> {
     removeLast(): T;
     clear(): void;
     forEach(callback: (value: T, node: LinkedListNode<T>, list: LinkedList<T>) => void): void;
+    reduce(callback: (aggregate: T, value: T, node: LinkedListNode<T>, list: LinkedList<T>) => T): T;
+    reduce<U>(callback: (aggregate: U, value: T, node: LinkedListNode<T>, list: LinkedList<T>) => U, initial: U): U;
+    reduceRight(callback: (aggregate: T, value: T, node: LinkedListNode<T>, list: LinkedList<T>) => T): T;
+    reduceRight<U>(callback: (aggregate: U, value: T, node: LinkedListNode<T>, list: LinkedList<T>) => U, initial: U): U;
+    map<U>(callback: (value: T, node: LinkedListNode<T>, list: LinkedList<T>) => U): LinkedList<U>;
+    filter(callback: (value: T, node: LinkedListNode<T>, list: LinkedList<T>) => boolean): LinkedList<T>;
+    join(delimiter?: string): string;
+    toArray(): T[];
+    toArray<U>(selector: (value: T, node: LinkedListNode<T>, list: LinkedList<T>) => U): U[];
+    toString(): string;
+    toJSON(): any;
     private _checkNode(node);
     private _checkNewNode(newNode);
     private _insert(node, newNode);

@@ -17,20 +17,30 @@ import task = require('./task');
 import Promise = promise.Promise;
 import CancellationToken = cancellation.CancellationToken;
 import CancellationTokenRegistration = cancellation.CancellationTokenRegistration;
-import scheduleTask = task.scheduleTask;
+import scheduleImmediateTask = task.scheduleImmediateTask;
+import scheduleDelayedTask = task.scheduleDelayedTask;
 
-export function sleep(delay: number = 0, token: CancellationToken = CancellationToken.none): Promise<void> {
-    if (typeof delay !== "number") {
-        throw new TypeError("Number expected.");
+export function sleep(delay: number, token: CancellationToken = CancellationToken.none): Promise<void> {
+    if ((delay |= 0) < 0) {
+        throw new RangeError();
     }
     if (token.canceled) {
-        return Promise.reject<void>(token.reason);
-    }
-    if (!token.canBeCanceled && delay <= 0) {
-        return Promise.resolve();
+        return Promise.reject(token.reason);
     }
     return new Promise<void>((resolve, reject) => {
+        scheduleDelayedTask(resolve, delay, token);
         token.register(reject);
-        scheduleTask(resolve, delay, token);
     });
 }
+
+export function spin(token: CancellationToken = CancellationToken.none): Promise<void> {
+    if (token.canceled) {
+        return Promise.reject(token.reason);
+    }
+    return new Promise<void>((resolve, reject) => {
+        scheduleImmediateTask(resolve, token);
+        token.register(reject);
+    });
+}
+
+export var resolvedPromise = <Promise<void>>Object.freeze(Promise.resolve());

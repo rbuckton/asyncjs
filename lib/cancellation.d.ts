@@ -1,3 +1,5 @@
+import promise = require('./promise');
+import Promise = promise.Promise;
 /**
   * A source for cancellation
   */
@@ -20,7 +22,7 @@ export declare class CancellationTokenSource {
      * Signals the source is cancelled.
      * @param reason An optional reason for the cancellation.
      */
-    cancel(reason?: any): void;
+    cancel(reason?: any): Promise<void>;
     /**
      * Closes the CancellationSource, preventing any future cancellation signal.
      */

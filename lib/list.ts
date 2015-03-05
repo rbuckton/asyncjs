@@ -244,7 +244,7 @@ export class LinkedList<T> {
         this._size = 0;
     }
 
-    public forEach(callback: (value: T, node: LinkedListNode<T>, list: LinkedList<T>) => void) {
+    public forEach(callback: (value: T, node: LinkedListNode<T>, list: LinkedList<T>) => void): void {
         var next = this._head;
         while (next) {
             var node = next;
@@ -254,6 +254,104 @@ export class LinkedList<T> {
                 break;
             }
         }
+    }
+    
+    public reduce(callback: (aggregate: T, value: T, node: LinkedListNode<T>, list: LinkedList<T>) => T): T;
+    public reduce<U>(callback: (aggregate: U, value: T, node: LinkedListNode<T>, list: LinkedList<T>) => U, initial: U): U;
+    public reduce<U>(callback: (aggregate: U, value: T, node: LinkedListNode<T>, list: LinkedList<T>) => U, initial?: U): U {
+        var result: T | U = initial;
+        var next = this._head;
+        if (next) {
+            if (arguments.length < 2) {
+                result = next.value;
+                next = (<any>next)._next;
+                if (next === this._head) {
+                    return <U>result;
+                }
+            }
+            do {
+                var node = next;
+                next = (<any>node)._next;
+                result = callback(<U>result, node.value, node, this);
+            }
+            while (next !== this._head);
+        }
+        return <U>result;
+    }
+
+    public reduceRight(callback: (aggregate: T, value: T, node: LinkedListNode<T>, list: LinkedList<T>) => T): T;
+    public reduceRight<U>(callback: (aggregate: U, value: T, node: LinkedListNode<T>, list: LinkedList<T>) => U, initial: U): U;
+    public reduceRight<U>(callback: (aggregate: U, value: T, node: LinkedListNode<T>, list: LinkedList<T>) => U, initial?: U): U {
+        var result: T | U = initial;
+        if (this._head) {
+            var tail = (<any>this._head)._previous
+            var previous = tail;
+            if (arguments.length < 2) {
+                result = previous.value;
+                previous = (<any>previous)._previous;
+                if (previous === tail) {
+                    return <U>result;
+                }
+            }
+            do {
+                var node = previous;
+                previous = (<any>node)._previous;
+                result = callback(<U>result, node.value, node, this);
+            }
+            while (previous !== tail);
+        }
+        return <U>result;
+    }
+    
+    public map<U>(callback: (value: T, node: LinkedListNode<T>, list: LinkedList<T>) => U): LinkedList<U> {
+        return this.reduce<LinkedList<U>>((result, value, node, list) => {
+            result.addLast(callback(value, node, list));
+            return result;
+        }, new LinkedList<U>());
+    }
+    
+    public filter(callback: (value: T, node: LinkedListNode<T>, list: LinkedList<T>) => boolean): LinkedList<T> {
+        return this.reduce<LinkedList<T>>((result, value, node, list) => {
+            if (callback(value, node, list)) {
+                result.addLast(value);
+            }
+            return result;
+        }, new LinkedList<T>());
+    }
+    
+    public join(delimiter: string = ","): string {
+        var first = true;
+        return this.reduce<string>((result, value, node) => {
+            if (!first) {
+                result += delimiter;
+            }
+            return result += String(value);
+        }, "");
+    }
+    
+    public toArray(): T[];
+    public toArray<U>(selector: (value: T, node: LinkedListNode<T>, list: LinkedList<T>) => U): U[];
+    public toArray<U>(selector?: (value: T, node: LinkedListNode<T>, list: LinkedList<T>) => U): U[] {
+        if (selector) {
+            return this.reduce<U[]>((result, value, node, list) => {
+                result.push(selector(value, node, list));
+                return result;
+            }, []);
+        }
+        else {
+            return <U[]>this.reduce<(T|U)[]>((result, value) => {
+                result.push(value);
+                return result;
+            }, []);
+        }
+    }
+    
+    public toString(): string {
+        return this.join();
+    }
+    
+    public toJSON(): any {
+        return this.toArray();
     }
     
     private _checkNode(node: LinkedListNode<T>): void {

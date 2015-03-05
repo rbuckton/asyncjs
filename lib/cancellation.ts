@@ -12,8 +12,14 @@ See the License for the specific language governing permissions and
 limitations under the License. 
 ***************************************************************************** */
 import list = require('./list');
+import utils = require('./utils');
+import promise = require('./promise');
+import task = require('./task');
 import LinkedList = list.LinkedList;
 import LinkedListNode = list.LinkedListNode;
+import resolvedPromise = utils.resolvedPromise;
+import Promise = promise.Promise;
+import scheduleImmediateTask = task.scheduleImmediateTask;
 
 var hasMsNonUserCodeExceptions =
     typeof Debug !== "undefined" &&
@@ -24,7 +30,7 @@ var hasMsNonUserCodeExceptions =
   */
 export class CancellationTokenSource {
     private static _canceled: CancellationToken;
-    private _callbacks: LinkedList<(reason: any) => void>;
+    private _callbacks: LinkedList<{ (reason: any): void }>;
     private _links: Array<CancellationTokenRegistration>;
     private _token: CancellationToken;
     private _canceled: boolean;
@@ -66,9 +72,9 @@ export class CancellationTokenSource {
      * Signals the source is cancelled.
      * @param reason An optional reason for the cancellation.
      */
-    public cancel(reason?: any): void {
+    public cancel(reason?: any): Promise<void> {
         if (this._canceled) {
-            return;
+            return resolvedPromise;
         }
         this._throwIfFrozen();
         if (reason == null) {
@@ -91,15 +97,27 @@ export class CancellationTokenSource {
         this._callbacks = null;
         Object.freeze(this);
         if (callbacks) {
-            try {
-                callbacks.forEach(callback => {
-                    callback(reason);
-                });
-            }
-            finally {
-                callbacks.clear();
-            }
+            return new Promise<void>((resolve, reject) => {
+                callbacks.forEach((callback, node) => {
+                    scheduleImmediateTask(() => {
+                        if (node.list === callbacks) {
+                            callbacks.deleteNode(node);
+                            if (hasMsNonUserCodeExceptions) {
+                                Debug.setNonUserCodeExceptions = true;
+                            }
+                            try {
+                                callback(reason);
+                                resolve();
+                            }
+                            catch (e) {
+                                reject(e);
+                            }
+                        }
+                    });
+                });                
+            });
         }
+        return resolvedPromise;
     }
 
     /**
@@ -122,18 +140,23 @@ export class CancellationTokenSource {
         this._callbacks = null;
         Object.freeze(this);
     }
-
+    
     private _register(callback: (reason: any) => void): CancellationTokenRegistration {
         if (this._canceled) {
-            callback(this._reason);
-            return emptyRegistration;
+            var scheduleCts = new CancellationTokenSource();
+            scheduleImmediateTask(() => { callback(this._reason); }, scheduleCts.token);
+            return Object.freeze({
+                unregister() {
+                    scheduleCts.cancel();
+                }
+            })
         }
         if (Object.isFrozen(this)) {
             return emptyRegistration;
         }
         var callbacks = this._callbacks;
         if (!callbacks) {
-            callbacks = new LinkedList<(reason: any) => void>();
+            callbacks = new LinkedList<{ (reason: any): void }>();
             this._callbacks = callbacks;
         }        
         var cookie = callbacks.addLast(callback);
