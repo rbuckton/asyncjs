@@ -11,14 +11,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and 
 limitations under the License. 
 ***************************************************************************** */
-import promise = require('./promise');
-import cancellation = require('./cancellation');
-import task = require('./task');
-import Promise = promise.Promise;
-import CancellationToken = cancellation.CancellationToken;
-import CancellationTokenRegistration = cancellation.CancellationTokenRegistration;
-import scheduleImmediateTask = task.scheduleImmediateTask;
-import scheduleDelayedTask = task.scheduleDelayedTask;
+import { Promise } from './promise';
+import { CancellationToken, CancellationTokenRegistration } from './cancellation';
+import { scheduleImmediateTask, scheduleDelayedTask } from './task';
 
 export function sleep(delay: number, token: CancellationToken = CancellationToken.none): Promise<void> {
     if ((delay |= 0) < 0) {

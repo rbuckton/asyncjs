@@ -11,15 +11,10 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and 
 limitations under the License. 
 ***************************************************************************** */
-import list = require('./list');
-import utils = require('./utils');
-import promise = require('./promise');
-import task = require('./task');
-import LinkedList = list.LinkedList;
-import LinkedListNode = list.LinkedListNode;
-import resolvedPromise = utils.resolvedPromise;
-import Promise = promise.Promise;
-import scheduleImmediateTask = task.scheduleImmediateTask;
+import { LinkedList, LinkedListNode } from './list';
+import { Promise } from './promise';
+import { resolvedPromise } from './utils';
+import { scheduleImmediateTask } from './task';
 
 var hasMsNonUserCodeExceptions =
     typeof Debug !== "undefined" &&
