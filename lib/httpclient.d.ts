@@ -1,7 +1,5 @@
-import promise = require('./promise');
-import cancellation = require('./cancellation');
-import Promise = promise.Promise;
-import CancellationToken = cancellation.CancellationToken;
+import { Promise } from './promise';
+import { CancellationToken } from './cancellation';
 /**
  * A Uri
  */

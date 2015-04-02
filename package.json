@@ -1,5 +1,5 @@
 {
-  "name": "async",
+  "name": "async-coord",
   "description": "Asynchronous coordination primitives for JavaScript and TypeScript",
   "keywords": [
     "async",
@@ -22,13 +22,13 @@
   },
   "version": "0.0.1",
   "main": "./lib/async.js",
-  "private": true,
-  "preferGlobal": true,
+  "private": false,
+  "preferGlobal": false,
   "dependencies": {    
   },
   "devDependencies": {
     "jake": "*",
-    "typescript": ">=1.4",
+    "typescript": ">=1.5.0-alpha",
     "browserify": "~8.0.3"
   },
   "engines": {

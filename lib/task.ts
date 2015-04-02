@@ -11,12 +11,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and 
 limitations under the License. 
 ***************************************************************************** */
-import list = require('./list');
-import cancellation = require('./cancellation');
-import LinkedList = list.LinkedList;
-import LinkedListNode = list.LinkedListNode;
-import CancellationToken = cancellation.CancellationToken;
-import CancellationTokenRegistration = cancellation.CancellationTokenRegistration;
+import { LinkedList, LinkedListNode } from './list';
+import { CancellationToken } from './cancellation';
 
 declare var process: any;
 
